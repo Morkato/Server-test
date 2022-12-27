@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat</title>
+
+  <script src="https://code.jquery.com/jquery-3.6.3.js" integrity="sha256-nQLuAZGRRcILA+6dMBOvcRh5Pe310sBpanc6+QBmyVM=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js" integrity="sha512-YeeA/Qxn5hYdkukScTCNNOhTrv1C2RubAGButJ1rmgQwZf/HdRaCGl+JAVkqsqaNRaYNHdheiuKKuPf9mDcqKg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <link rel="stylesheet" href="/api/styles/base.css">
+</head>
+<body>
+  <form class="card">
+    <div class="info">
+      <img name="icon" src="https://cdn.discordapp.com/avatars/510948690354110464/178b0bf0a9c51019eb5976bd14083fec.webp" alt="" />
+      <div class="inputs">
+        <div class="input-text" style="margin: 0;">
+          <span>NAME</span>
+          <input name="name" autocomplete="off" type="text" required />
+        </div>
+        <div class="input-text">
+          <span>ICONURL</span>
+          <input name="icon" autocomplete="off" type="text" />
+        </div>
+      </div>
+    </div>
+    <div class="messages"></div>
+    <textarea name="chat"></textarea>
+    <button type="submit">Enviar</button>
+  </form>
+</body>
+<script>
+  const messages = $('.messages')
+  const socket = io("http://192.168.18.3:5500")
+
+  function sendMessage(name, content, url) {
+    socket.emit('message', {
+      "author": name,
+      "content": content,
+      "icon": url
+    })
+  }
+  function renderMessage(name, content, url) {
+    messages.append(`
+    <div class="message">
+      <img name="author" src="${url}" alt="">
+      <div class="content">
+        <div class="author">${name}</div>
+        <span>${content}</span>
+      </div>
+    </div>`)
+    if(messages.contents().length > 4) {
+      messages.addClass('overflow-y')
+    }
+  }
+  socket.on('receiveMeg', data => {
+    for(let message of data) {
+      renderMessage(message['author'], message['content'], message["icon"])
+    }
+  })
+  socket.on('onmessage', message => {
+    renderMessage(message['author'], message['content'], message["icon"])
+  })
+  $('input[name=icon]')
+  .keyup(() => {
+    $('img[name=icon]').attr('src', $('input[name=icon]').val())
+  })
+  $('form[class=card]')
+  .submit(event => {
+    event.preventDefault()
+
+    let author = $('input[name=name]').val()
+    let icon = $('input[name=icon]').val()
+
+    let content = $('textarea[name=chat]').val()
+    if(!(content)) return
+    if(!(icon)) icon = null
+    sendMessage(author, content, icon)
+  })
+</script>
+</html>
